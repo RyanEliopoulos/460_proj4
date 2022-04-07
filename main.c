@@ -24,6 +24,7 @@ void load(unsigned int);
 void evict();
 void read_op(unsigned int);
 void write_op(unsigned int);
+void print_list();
 
 struct pageNode {
     struct pageNode *prev_node;
@@ -51,6 +52,11 @@ int main(int argc, char *argv[]) {
     printf("max count: %u\n", max_pages);
     // Args valid. Beginning
     process(file);
+    // Flushing remaining dirty pages
+    while(page_head != NULL) {
+        evict();
+    }
+    fclose(file);
     // Printing metadata 
     print_stats();
 }
@@ -118,6 +124,7 @@ void process(FILE *file) {
         free(line);
         line = NULL;
     }
+    free(line);
 }
 
 struct pageNode *new_pn(unsigned int page) {
@@ -178,7 +185,8 @@ void evict() {
     // Caller's responsibility to check if there is something to evict
     // Updates wb_time and page_count
     printf("Evicting\n");
-    if(alg == FIFO) {
+    //if(alg == FIFO) {
+    if(alg == alg) {
         if(page_head->dirty) wb_time = wb_time + 10;
         // Cutting head
         if(page_head->nxt_node == NULL) {
@@ -195,10 +203,41 @@ void evict() {
 }
 
 void read_op(unsigned int page) {
-    if(cached(page)) return;
-    printf("not cached\n");
-    // Page miss
-    load(page);
+    if(alg == FIFO) {
+        if(cached(page)) return;
+        printf("not cached\n");
+        // Page miss
+        load(page);
+    }
+    else if(alg == LRU) {
+        if(cached(page)) {
+        // Have to rearrange the pages. page_head == oldest
+            struct pageNode *tmp = page_head;
+            // Extract current node from the list 
+            while(1) {
+                if(tmp->page == page) {
+                    if(tmp->prev_node != NULL) {
+                        tmp->prev_node->nxt_node = tmp->nxt_node;
+                    }
+                    if(tmp->nxt_node != NULL) {
+                        tmp->nxt_node->prev_node = tmp->prev_node;
+                    }
+                    break;
+                }
+                tmp = tmp->nxt_node;
+            }   
+            // Appending to end of list
+            struct pageNode *end = page_head;
+            while(end->nxt_node != NULL) {
+                end = end->nxt_node;
+            }
+            end->nxt_node = tmp;
+        }
+        else {
+            // Page miss
+            load(page);
+        }
+    }
 }
 
 void write_op(unsigned int page) {
@@ -211,5 +250,15 @@ void write_op(unsigned int page) {
     else {  // page is not in RAM
         load(page);
         write_op(page);
+    }
+}
+
+void print_list() {
+    struct pageNode *node = page_head;
+    int i = 0;
+    while(node != NULL) {
+        printf("node %d: %u\n", i, node->page);
+        i++;
+        node = node->nxt_node; 
     }
 }
