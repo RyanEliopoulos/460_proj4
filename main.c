@@ -8,7 +8,8 @@
 #define FIFO 1
 #define LRU 2
 
-void vet_args(int, char *[], FILE *);
+void vet_args(int, char *[], FILE **);
+void process(FILE *file);
 
 
 
@@ -20,12 +21,14 @@ int alg = 0;
 int main(int argc, char *argv[]) {
 
     // Process args
-    unsigned int page_count = 0;
     FILE *file = NULL;
-    vet_args(argc, argv, file);
+    vet_args(argc, argv, &file);
+    // Args valid. Beginning
+    process(file);
+   
 }
 
-void vet_args(int argc, char *argv[], FILE *file) {
+void vet_args(int argc, char *argv[], FILE **file) {
 
     // Arg count
     if(argc != 4) {
@@ -39,7 +42,7 @@ void vet_args(int argc, char *argv[], FILE *file) {
         exit(1);
     }
     // Opening pageref file
-    file = fopen(argv[3], "r");
+    *file = fopen(argv[3], "r");
     if(file == NULL) {
         printf("page ref error: %s\n", strerror(errno));
         exit(1);
@@ -55,4 +58,28 @@ void vet_args(int argc, char *argv[], FILE *file) {
         exit(1);
     }
 
+}
+
+
+void process(FILE *file) {
+    // Read each line of the pageref file 
+    // and take action as needed
+
+    char *line = NULL;
+    size_t linelen = 20;
+    while((getline(&line, &linelen, file)) != -1) {
+        printf("here\n");
+        char mode; // r or w
+        unsigned int page; 
+        int ret = sscanf(line, "%c %u", &mode, &page);
+        if(ret != 2) {
+            printf("ret does not equal 2\n");
+        }
+        else {
+            printf("%c: %u\n", mode, page);
+        }        
+        free(line);
+        line = NULL;
+    }
+    printf("here though\n");
 }
