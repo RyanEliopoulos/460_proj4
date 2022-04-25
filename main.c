@@ -194,7 +194,6 @@ void add(unsigned int page) {
         new_node->nxt_node = NULL;
         tmp_node->nxt_node = new_node; 
         page_count++;
-        printf("page count is:%d and max_pages is: %d\n", page_count, max_pages);
     }
 }
 
@@ -205,7 +204,10 @@ void evict() {
     printf("Evicting\n");
     //if(alg == FIFO) {
     if(alg == alg) {
-        if(page_head->dirty) wb_time = wb_time + 10;
+        if(page_head->dirty) {
+            wb_time = wb_time + 10;
+            printf("Evicting %u with bit set: %d\n", page_head->page, page_head->dirty);
+        }
         // Cutting head
         if(page_head->nxt_node == NULL) {
             free(page_head);
