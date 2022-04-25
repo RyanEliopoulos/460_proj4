@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) {
     fclose(file);
     // Printing metadata 
     print_stats();
+    printf("max_pages: %d\n", max_pages);
 }
 
 void print_stats() {
@@ -129,7 +130,7 @@ void process(FILE *file) {
         else {
             printf("mode is neither read or write????\n"); 
         }
-        print_list();
+        //print_list();
         free(line);
         line = NULL;
     }
@@ -212,13 +213,14 @@ void evict() {
         if(page_head->nxt_node == NULL) {
             free(page_head);
             page_head = NULL;
+            
         }
         else {
             struct pageNode *new_head = page_head->nxt_node;
             free(page_head);
             page_head = new_head;
-            page_count--;
         }
+        page_count--;
     }
 }
 
