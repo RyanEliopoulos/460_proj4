@@ -2,6 +2,7 @@
  *  CS 460 Project 4
  *
  *
+ *   read_op is responsible for shifting the linked list around to represent the correct LRU state
  */
 
 
@@ -109,18 +110,26 @@ void process(FILE *file) {
     size_t linelen = 20;
     while((getline(&line, &linelen, file)) != -1) {
         // Read a line from the pageref file
-        page_refs++;
         char mode; // r or w
         unsigned int page; 
         int ret = sscanf(line, "%c %u", &mode, &page);
+        if(ret == 2) {
+            page_refs++;
+        }
         // Mode and page number retrieved. Now perform the action..
-        if(mode == 'r') {
+
+        if(mode == 'R') {
             printf("%c %u\n", mode, page);
             read_op(page);
         }
-        else if(mode == 'w') {
+        else if(mode == 'W') {
+            printf("%c %u\n", mode, page);
             write_op(page);
         }
+        else {
+            printf("mode is neither read or write????\n"); 
+        }
+        print_list();
         free(line);
         line = NULL;
     }
@@ -138,9 +147,13 @@ int cached(unsigned int page) {
     // Returns 1 if the given page is in memory, else 0
     struct pageNode *pn = page_head;
     while(pn != NULL) {
-        if(pn->page == page) return 1;
+        if(pn->page == page) {
+            printf("cached: %u\n", page);
+            return 1;
+        }
         pn = pn->nxt_node;
     }
+    printf("not cached: %u\n", page);
     return 0;
 }
 
@@ -158,6 +171,7 @@ void load(unsigned int page) {
 
 void add(unsigned int page) {
     // Caller checks if there is room for the addition
+    // Newest node goes at the end of the list (furthest from page_head)
     // Updates page_count
       
     printf("in add\n");    
@@ -165,9 +179,12 @@ void add(unsigned int page) {
         page_head = new_pn(page);
         page_head->prev_node = NULL;
         page_head->nxt_node = NULL;
+        page_count++;
     }
-    else if(alg == FIFO) {
-        // FIFO add
+    //else if(alg == FIFO) {
+    else if(alg == alg) {
+        if(page_count == max_pages) return; 
+
         struct pageNode *tmp_node = page_head;
         while(tmp_node->nxt_node != NULL) {
             tmp_node = tmp_node->nxt_node;
@@ -177,6 +194,7 @@ void add(unsigned int page) {
         new_node->nxt_node = NULL;
         tmp_node->nxt_node = new_node; 
         page_count++;
+        printf("page count is:%d and max_pages is: %d\n", page_count, max_pages);
     }
 }
 
@@ -205,7 +223,7 @@ void evict() {
 void read_op(unsigned int page) {
     if(alg == FIFO) {
         if(cached(page)) return;
-        printf("not cached\n");
+        //printf("read: not cached\n");
         // Page miss
         load(page);
     }
@@ -248,6 +266,7 @@ void write_op(unsigned int page) {
         tmp->dirty = 1;
     }
     else {  // page is not in RAM
+        //printf("Write: Not cached\n");
         load(page);
         write_op(page);
     }
