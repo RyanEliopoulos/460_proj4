@@ -111,6 +111,7 @@ void process(FILE *file) {
     size_t linelen = 20;
     while((getline(&line, &linelen, file)) != -1) {
         // Read a line from the pageref file
+        //printf("read new line\n");
         char mode; // r or w
         unsigned int page; 
         int ret = sscanf(line, "%c %u", &mode, &page);
@@ -120,11 +121,11 @@ void process(FILE *file) {
         // Mode and page number retrieved. Now perform the action..
 
         if(mode == 'R') {
-            printf("%c %u\n", mode, page);
+            //printf("%c %u\n", mode, page);
             read_op(page);
         }
         else if(mode == 'W') {
-            printf("%c %u\n", mode, page);
+            //printf("%c %u\n", mode, page);
             write_op(page);
         }
         else {
@@ -146,12 +147,14 @@ struct pageNode *new_pn(unsigned int page) {
 
 int cached(unsigned int page) {
     // Returns 1 if the given page is in memory, else 0
+    printf("Analyze cached values\n");
     struct pageNode *pn = page_head;
     while(pn != NULL) {
         if(pn->page == page) {
             printf("cached: %u\n", page);
             return 1;
         }
+        //printf("Cached: %u\n", pn->page);
         pn = pn->nxt_node;
     }
     printf("not cached: %u\n", page);
@@ -162,6 +165,7 @@ void load(unsigned int page) {
     // Pulls the requested page from disk to RAM.
     // Updates time_units, page_misses 
     //
+    printf("loading\n");
     if(page_count == max_pages) {
         evict();
     }
@@ -236,37 +240,54 @@ void read_op(unsigned int page) {
         // Have to rearrange the pages. page_head == oldest
             struct pageNode *tmp = page_head;
             // Extract current node from the list 
+            printf("Current list----------\n");
+            print_list();
+            printf("LRU: Extracting current node from list\n");
             while(1) {
                 if(tmp->page == page) {
                     if(tmp->prev_node != NULL) {
                         tmp->prev_node->nxt_node = tmp->nxt_node;
+                        printf("prev_node not null\n");
                     }
                     if(tmp->nxt_node != NULL) {
                         tmp->nxt_node->prev_node = tmp->prev_node;
+                        printf("next_node not null\n");
                     }
                     break;
                 }
                 tmp = tmp->nxt_node;
             }   
+            printf("LRU: Done extracting current node\n");
+            printf("Update list--------\n");
+            print_list();
+
             // Appending to end of list
             struct pageNode *end = page_head;
             while(end->nxt_node != NULL) {
                 end = end->nxt_node;
             }
-            end->nxt_node = tmp;
+            // But only if the current node is not also the last node
+            if(end->page != tmp->page) {
+                end->nxt_node = tmp;
+                printf("LRU: Done appending to end of list\n");
+            }
         }
         else {
             // Page miss
+            printf("LRU: Page miss\n");
             load(page);
         }
     }
 }
 
 void write_op(unsigned int page) {
+    //printf("In write op\n");
     if(cached(page)) {
         // Marking dirty bit
         struct pageNode *tmp = page_head;
+        printf("About to be clever\n");
         while(tmp->page != page) tmp = tmp->nxt_node;
+        printf("Done being clever\n");
         tmp->dirty = 1;
     }
     else {  // page is not in RAM
@@ -280,7 +301,7 @@ void print_list() {
     struct pageNode *node = page_head;
     int i = 0;
     while(node != NULL) {
-        printf("node %d: %u\n", i, node->page);
+        printf("-----node %d: %u\n", i, node->page);
         i++;
         node = node->nxt_node; 
     }
