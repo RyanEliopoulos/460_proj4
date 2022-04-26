@@ -147,17 +147,17 @@ struct pageNode *new_pn(unsigned int page) {
 
 int cached(unsigned int page) {
     // Returns 1 if the given page is in memory, else 0
-    printf("Analyze cached values\n");
+    //printf("Analyze cached values\n");
     struct pageNode *pn = page_head;
     while(pn != NULL) {
         if(pn->page == page) {
-            printf("cached: %u\n", page);
+            //printf("cached: %u\n", page);
             return 1;
         }
         //printf("Cached: %u\n", pn->page);
         pn = pn->nxt_node;
     }
-    printf("not cached: %u\n", page);
+    //printf("not cached: %u\n", page);
     return 0;
 }
 
@@ -165,7 +165,7 @@ void load(unsigned int page) {
     // Pulls the requested page from disk to RAM.
     // Updates time_units, page_misses 
     //
-    printf("loading\n");
+    //printf("loading\n");
     if(page_count == max_pages) {
         evict();
     }
@@ -179,7 +179,7 @@ void add(unsigned int page) {
     // Newest node goes at the end of the list (furthest from page_head)
     // Updates page_count
       
-    printf("in add\n");    
+    //printf("in add\n");    
     if(page_head == NULL) {
         page_head = new_pn(page);
         page_head->prev_node = NULL;
@@ -189,7 +189,8 @@ void add(unsigned int page) {
     //else if(alg == FIFO) {
     else if(alg == alg) {
         if(page_count == max_pages) return; 
-
+        //printf("BEFORE NEW NODE node\n");
+        //print_list(); 
         struct pageNode *tmp_node = page_head;
         while(tmp_node->nxt_node != NULL) {
             tmp_node = tmp_node->nxt_node;
@@ -199,6 +200,8 @@ void add(unsigned int page) {
         new_node->nxt_node = NULL;
         tmp_node->nxt_node = new_node; 
         page_count++;
+        //printf("AFTER NEW NODE node\n");
+        //print_list(); 
     }
 }
 
@@ -206,12 +209,12 @@ void evict() {
     // Evicts the obsolete page based on the algorithm
     // Caller's responsibility to check if there is something to evict
     // Updates wb_time and page_count
-    printf("Evicting\n");
+    //printf("Evicting\n");
     //if(alg == FIFO) {
     if(alg == alg) {
         if(page_head->dirty) {
             wb_time = wb_time + 10;
-            printf("Evicting %u with bit set: %d\n", page_head->page, page_head->dirty);
+            //printf("Evicting %u with bit set: %d\n", page_head->page, page_head->dirty);
         }
         // Cutting head
         if(page_head->nxt_node == NULL) {
@@ -222,7 +225,9 @@ void evict() {
         else {
             struct pageNode *new_head = page_head->nxt_node;
             free(page_head);
+            new_head->prev_node = NULL;
             page_head = new_head;
+           
         }
         page_count--;
     }
@@ -231,50 +236,51 @@ void evict() {
 void read_op(unsigned int page) {
     if(alg == FIFO) {
         if(cached(page)) return;
-        //printf("read: not cached\n");
         // Page miss
         load(page);
     }
     else if(alg == LRU) {
         if(cached(page)) {
-        // Have to rearrange the pages. page_head == oldest
+            // Have to rearrange the pages. page_head == oldest
+            if(max_pages == 1) return;   // No rearranging necessary
+
             struct pageNode *tmp = page_head;
             // Extract current node from the list 
-            printf("Current list----------\n");
-            print_list();
-            printf("LRU: Extracting current node from list\n");
             while(1) {
                 if(tmp->page == page) {
                     if(tmp->prev_node != NULL) {
                         tmp->prev_node->nxt_node = tmp->nxt_node;
-                        printf("prev_node not null\n");
+                        //printf("page: %d, prev_node not null\n", page);
                     }
                     if(tmp->nxt_node != NULL) {
                         tmp->nxt_node->prev_node = tmp->prev_node;
-                        printf("next_node not null\n");
+                        //printf("page: %d, next_node not null\n", page);
                     }
                     break;
                 }
                 tmp = tmp->nxt_node;
             }   
-            printf("LRU: Done extracting current node\n");
-            printf("Update list--------\n");
-            print_list();
 
             // Appending to end of list
             struct pageNode *end = page_head;
             while(end->nxt_node != NULL) {
                 end = end->nxt_node;
             }
-            // But only if the current node is not also the last node
-            if(end->page != tmp->page) {
-                end->nxt_node = tmp;
-                printf("LRU: Done appending to end of list\n");
+            //printf("end page: %d\n", end->page);
+            
+            if(end->page == tmp->page) { // If the current node is also the last node, no updates are needed
+                return;
             }
+            if(tmp->page == page_head->page) {  // Need to update the page head
+                page_head = tmp->nxt_node;
+            }
+            // Appending
+            end->nxt_node = tmp;
+            tmp->prev_node = end;
+            tmp->nxt_node = NULL;
         }
         else {
             // Page miss
-            printf("LRU: Page miss\n");
             load(page);
         }
     }
@@ -285,9 +291,9 @@ void write_op(unsigned int page) {
     if(cached(page)) {
         // Marking dirty bit
         struct pageNode *tmp = page_head;
-        printf("About to be clever\n");
+       // printf("About to be clever\n");
         while(tmp->page != page) tmp = tmp->nxt_node;
-        printf("Done being clever\n");
+        //printf("Done being clever\n");
         tmp->dirty = 1;
     }
     else {  // page is not in RAM
@@ -301,7 +307,21 @@ void print_list() {
     struct pageNode *node = page_head;
     int i = 0;
     while(node != NULL) {
-        printf("-----node %d: %u\n", i, node->page);
+        printf("-----node %d: ", i);
+        printf(",page %d: ", node->page);
+        if(node->prev_node != NULL) {
+            printf("prev page: %d", node->prev_node->page);
+        }
+        else {
+            printf("prev page NULL");
+        }
+        if(node->nxt_node != NULL) {
+            printf(", next page: %d", node->nxt_node->page);
+        }
+        else {
+            printf("Nxt page NULL");
+        }
+        printf("\n");    
         i++;
         node = node->nxt_node; 
     }
