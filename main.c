@@ -50,9 +50,11 @@ int main(int argc, char *argv[]) {
     // Process args
     FILE *file = NULL;
     vet_args(argc, argv, &file);
-    printf("max count: %u\n", max_pages);
+    //printf("max count: %u\n", max_pages);
     // Args valid. Beginning
     process(file);
+    //print_list();
+    //printf("This is the current wb_time: %u\n", wb_time);
     // Flushing remaining dirty pages
     while(page_head != NULL) {
         evict();
@@ -60,7 +62,6 @@ int main(int argc, char *argv[]) {
     fclose(file);
     // Printing metadata 
     print_stats();
-    printf("max_pages: %d\n", max_pages);
 }
 
 void print_stats() {
@@ -129,7 +130,7 @@ void process(FILE *file) {
             write_op(page);
         }
         else {
-            printf("mode is neither read or write????\n"); 
+            //printf("neither_mode"); 
         }
         //print_list();
         free(line);
@@ -309,6 +310,7 @@ void print_list() {
     while(node != NULL) {
         printf("-----node %d: ", i);
         printf(",page %d: ", node->page);
+        printf(", dirty: %d", node->dirty);
         if(node->prev_node != NULL) {
             printf("prev page: %d", node->prev_node->page);
         }
